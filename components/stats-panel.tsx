@@ -2,21 +2,23 @@ interface StatsPanelProps {
   stats: {
     treesPlanted: number;
     treesChopped: number;
+    dryTreesChopped: number; // Added new stat for dry trees
+    healthyTreesChopped: number; // Added new stat for healthy trees
     trashCleaned: number;
     plasticCleaned: number;
     metalCleaned: number;
     firesExtinguished: number;
     animalsHelped: number;
     animalsCured: number;
-    animalsFed: number; // Added new stat
+    animalsFed: number;
     distanceTraveled: number;
     resourcesCollected: number;
     waterCollected: number;
     holesDigged: number;
     holesFilled: number;
     missionsCompleted: number;
-    flowersCollected: number; // Added new stat
-    mushroomsCollected: number; // Added new stat
+    flowersCollected: number;
+    mushroomsCollected: number;
   };
   score: number;
   biomeHealth: number;
@@ -26,7 +28,7 @@ interface StatsPanelProps {
 export default function StatsPanel({ stats, score, biomeHealth, gameWon }: StatsPanelProps) {
   // Calcular eficiencia de reciclaje
   const recyclingEfficiency = stats.trashCleaned > 0 
-    ? Math.round((stats.trashCleaned / (stats.trashCleaned + 10)) * 100) // Asumiendo que había más basura
+    ? Math.round((stats.trashCleaned / (stats.trashCleaned + 10)) * 100)
     : 0;
 
   // Calcular balance ecológico
@@ -73,8 +75,16 @@ export default function StatsPanel({ stats, score, biomeHealth, gameWon }: Stats
             <span className="font-bold text-green-400">+{stats.treesPlanted}</span>
           </div>
           <div className="flex justify-between items-center bg-slate-600 rounded px-3 py-2">
-            <span>Árboles Talados</span>
-            <span className="font-bold text-red-400">-{stats.treesChopped}</span>
+            <span>Árboles Talados (Total)</span>
+            <span className="font-bold text-orange-400">{stats.treesChopped}</span>
+          </div>
+          <div className="flex justify-between items-center bg-slate-600 rounded px-3 py-2 ml-4">
+            <span className="text-xs">• Árboles Secos (Bueno)</span>
+            <span className="font-bold text-green-400">+{stats.dryTreesChopped}</span>
+          </div>
+          <div className="flex justify-between items-center bg-slate-600 rounded px-3 py-2 ml-4">
+            <span className="text-xs">• Árboles Sanos (Malo)</span>
+            <span className="font-bold text-red-400">-{stats.healthyTreesChopped}</span>
           </div>
           <div className="flex justify-between items-center bg-slate-600 rounded px-3 py-2">
             <span>Balance Ecológico</span>
@@ -178,7 +188,7 @@ export default function StatsPanel({ stats, score, biomeHealth, gameWon }: Stats
             <span className="font-bold text-green-400">
               {stats.treesPlanted + stats.trashCleaned + stats.firesExtinguished + 
                stats.animalsHelped + stats.animalsCured + stats.animalsFed + stats.holesFilled +
-               stats.flowersCollected + stats.mushroomsCollected}
+               stats.flowersCollected + stats.mushroomsCollected + stats.dryTreesChopped}
             </span>
           </div>
           <div className="flex justify-between items-center bg-slate-600 rounded px-3 py-2">
@@ -203,6 +213,14 @@ export default function StatsPanel({ stats, score, biomeHealth, gameWon }: Stats
               {stats.treesPlanted > 0
                 ? Math.round((stats.treesPlanted / (stats.treesPlanted + stats.treesChopped)) * 100)
                 : 0}%
+            </span>
+          </div>
+          <div className="flex justify-between items-center bg-slate-600 rounded px-3 py-2">
+            <span>Tala Inteligente</span>
+            <span className="font-bold text-lime-400">
+              {stats.treesChopped > 0
+                ? Math.round((stats.dryTreesChopped / stats.treesChopped) * 100)
+                : 0}% correcta
             </span>
           </div>
         </div>

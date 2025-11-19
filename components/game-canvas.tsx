@@ -315,26 +315,69 @@ export default function GameCanvas({ gameState, biome, mapWidth = 800, mapHeight
       gameState.trees.forEach((tree) => {
         const sway = Math.sin(Date.now() / 500 + tree.x / 50) * 2;
         
-        ctx.fillStyle = '#15803d';
+        // Determine tree appearance based on stage
+        let treeSize = 16;
+        let trunkHeight = 12;
+        let foliageColor1 = '#15803d';
+        let foliageColor2 = '#16a34a';
+        let foliageColor3 = '#22c55e';
+        let trunkColor = '#92400e';
+        
+        if (tree.stage === 'small') {
+          treeSize = 8;
+          trunkHeight = 6;
+          foliageColor1 = '#84cc16';
+          foliageColor2 = '#a3e635';
+          foliageColor3 = '#bef264';
+        } else if (tree.stage === 'medium') {
+          treeSize = 12;
+          trunkHeight = 9;
+          foliageColor1 = '#16a34a';
+          foliageColor2 = '#22c55e';
+          foliageColor3 = '#4ade80';
+        } else if (tree.stage === 'dry') {
+          treeSize = 14;
+          trunkHeight = 12;
+          foliageColor1 = '#78350f';
+          foliageColor2 = '#92400e';
+          foliageColor3 = '#a16207';
+          trunkColor = '#57534e';
+        }
+        
+        // Foliage (leaves)
+        ctx.fillStyle = foliageColor1;
         ctx.beginPath();
-        ctx.arc(tree.x - cameraX + sway, tree.y - cameraY - 2, 16, 0, Math.PI * 2);
+        ctx.arc(tree.x - cameraX + sway, tree.y - cameraY - 2, treeSize, 0, Math.PI * 2);
         ctx.fill();
         
-        ctx.fillStyle = '#16a34a';
+        ctx.fillStyle = foliageColor2;
         ctx.beginPath();
-        ctx.arc(tree.x - cameraX + sway, tree.y - cameraY, 14, 0, Math.PI * 2);
+        ctx.arc(tree.x - cameraX + sway, tree.y - cameraY, treeSize * 0.875, 0, Math.PI * 2);
         ctx.fill();
         
-        ctx.fillStyle = '#22c55e';
+        ctx.fillStyle = foliageColor3;
         ctx.beginPath();
-        ctx.arc(tree.x - cameraX + sway - 3, tree.y - cameraY - 3, 8, 0, Math.PI * 2);
+        ctx.arc(tree.x - cameraX + sway - 3, tree.y - cameraY - 3, treeSize * 0.5, 0, Math.PI * 2);
         ctx.fill();
 
-        ctx.fillStyle = '#92400e';
-        ctx.fillRect(tree.x - cameraX - 3, tree.y - cameraY + 5, 6, 12);
+        // Trunk
+        const trunkWidth = Math.max(3, treeSize * 0.375);
+        ctx.fillStyle = trunkColor;
+        ctx.fillRect(tree.x - cameraX - trunkWidth / 2, tree.y - cameraY + 5, trunkWidth, trunkHeight);
         
-        ctx.fillStyle = '#b45309';
-        ctx.fillRect(tree.x - cameraX - 2, tree.y - cameraY + 6, 2, 10);
+        if (tree.stage !== 'dry') {
+          ctx.fillStyle = '#b45309';
+          ctx.fillRect(tree.x - cameraX - trunkWidth / 4, tree.y - cameraY + 6, trunkWidth / 2, trunkHeight - 2);
+        }
+        
+        // Visual indicator for dry trees
+        if (tree.stage === 'dry') {
+          ctx.strokeStyle = '#dc2626';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(tree.x - cameraX + sway, tree.y - cameraY, treeSize + 2, 0, Math.PI * 2);
+          ctx.stroke();
+        }
       });
 
       gameState.trash.forEach((trash) => {
@@ -405,8 +448,12 @@ export default function GameCanvas({ gameState, biome, mapWidth = 800, mapHeight
       });
 
       gameState.animals.forEach((animal) => {
-        const walkCycle = Math.sin(Date.now() / 200 + animal.x) * 2;
-        const bounce = Math.abs(Math.sin(Date.now() / 300 + animal.x)) * 2;
+        // Calculate if animal is moving
+        const isMoving = animal.targetX && animal.targetY && 
+                        (Math.abs(animal.x - animal.targetX) > 5 || Math.abs(animal.y - animal.targetY) > 5);
+        
+        const walkCycle = isMoving ? Math.sin(Date.now() / 150 + animal.x) * 3 : 0;
+        const bounce = isMoving ? Math.abs(Math.sin(Date.now() / 200 + animal.x)) * 3 : Math.abs(Math.sin(Date.now() / 300 + animal.x)) * 1;
         
         // Shadow
         ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
@@ -459,7 +506,7 @@ export default function GameCanvas({ gameState, biome, mapWidth = 800, mapHeight
         ctx.ellipse(animal.x - cameraX, animal.y - cameraY - bounce, bodySize, bodySize * 0.7, 0, 0, Math.PI * 2);
         ctx.fill();
         
-        // Legs
+        // Legs (animated when moving)
         ctx.strokeStyle = bodyColor;
         ctx.lineWidth = 2;
         ctx.beginPath();
