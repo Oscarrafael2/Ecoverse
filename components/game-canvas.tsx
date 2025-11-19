@@ -164,6 +164,119 @@ export default function GameCanvas({ gameState, biome, mapWidth = 800, mapHeight
         ctx.stroke();
       });
 
+      gameState.rocks?.forEach((rock) => {
+        const size = rock.size || 1;
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+        ctx.beginPath();
+        ctx.arc(rock.x - cameraX + 2, rock.y - cameraY + 2, 12 * size, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.fillStyle = '#64748b';
+        ctx.beginPath();
+        ctx.arc(rock.x - cameraX, rock.y - cameraY, 12 * size, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.fillStyle = '#94a3b8';
+        ctx.beginPath();
+        ctx.arc(rock.x - cameraX - 3 * size, rock.y - cameraY - 3 * size, 5 * size, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.strokeStyle = '#475569';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      });
+
+      gameState.bushes?.forEach((bush) => {
+        const sway = Math.sin(Date.now() / 600 + bush.x / 40) * 1.5;
+        
+        ctx.fillStyle = '#15803d';
+        ctx.beginPath();
+        ctx.arc(bush.x - cameraX + sway - 5, bush.y - cameraY, 8, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.fillStyle = '#16a34a';
+        ctx.beginPath();
+        ctx.arc(bush.x - cameraX + sway + 5, bush.y - cameraY, 8, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.fillStyle = '#22c55e';
+        ctx.beginPath();
+        ctx.arc(bush.x - cameraX + sway, bush.y - cameraY - 5, 9, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      gameState.flowers?.forEach((flower) => {
+        const bob = Math.sin(Date.now() / 500 + flower.x) * 2;
+        
+        let petalColor = '#ef4444';
+        let centerColor = '#fbbf24';
+        
+        if (flower.color === 'yellow') petalColor = '#fde047';
+        else if (flower.color === 'purple') petalColor = '#a855f7';
+        else if (flower.color === 'pink') petalColor = '#ec4899';
+        else if (flower.color === 'blue') petalColor = '#3b82f6';
+        
+        // Stem
+        ctx.strokeStyle = '#15803d';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(flower.x - cameraX, flower.y - cameraY + 5);
+        ctx.lineTo(flower.x - cameraX, flower.y - cameraY - 5 + bob);
+        ctx.stroke();
+        
+        // Petals
+        for (let i = 0; i < 5; i++) {
+          const angle = (i / 5) * Math.PI * 2;
+          const petalX = flower.x - cameraX + Math.cos(angle) * 6;
+          const petalY = flower.y - cameraY - 8 + bob + Math.sin(angle) * 6;
+          
+          ctx.fillStyle = petalColor;
+          ctx.beginPath();
+          ctx.arc(petalX, petalY, 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        
+        // Center
+        ctx.fillStyle = centerColor;
+        ctx.beginPath();
+        ctx.arc(flower.x - cameraX, flower.y - cameraY - 8 + bob, 3, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      gameState.mushrooms?.forEach((mushroom) => {
+        let capColor = '#ef4444';
+        if (mushroom.type === 'brown') capColor = '#92400e';
+        else if (mushroom.type === 'yellow') capColor = '#fbbf24';
+        
+        // Stem
+        ctx.fillStyle = '#f5f5f4';
+        ctx.fillRect(mushroom.x - cameraX - 3, mushroom.y - cameraY - 2, 6, 8);
+        
+        // Cap shadow
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+        ctx.beginPath();
+        ctx.ellipse(mushroom.x - cameraX, mushroom.y - cameraY - 2, 10, 6, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Cap
+        ctx.fillStyle = capColor;
+        ctx.beginPath();
+        ctx.ellipse(mushroom.x - cameraX, mushroom.y - cameraY - 4, 10, 6, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Spots (for red mushrooms)
+        if (mushroom.type === 'red') {
+          ctx.fillStyle = '#fff';
+          for (let i = 0; i < 3; i++) {
+            const spotX = mushroom.x - cameraX + (i - 1) * 5;
+            const spotY = mushroom.y - cameraY - 4 + Math.abs(i - 1) * 2;
+            ctx.beginPath();
+            ctx.arc(spotX, spotY, 2, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      });
+
       gameState.resources?.forEach((resource) => {
         const shimmer = Math.sin(Date.now() / 200 + resource.x) * 0.3 + 0.7;
         let color = '#888888';
@@ -227,16 +340,6 @@ export default function GameCanvas({ gameState, biome, mapWidth = 800, mapHeight
       gameState.trash.forEach((trash) => {
         const bob = Math.sin(Date.now() / 400 + trash.x) * 1;
         
-        ctx.strokeStyle = '#6b7280';
-        ctx.lineWidth = 1.5;
-        for (let i = 0; i < 3; i++) {
-          const offsetX = Math.sin(i) * 10;
-          const offsetY = -age / 15 - i * 5;
-          ctx.fillStyle = i % 2 === 0 ? '#fbbf24' : '#fde047';
-          ctx.font = `bold ${18 - age / 50}px Arial`;
-          ctx.textAlign = 'center';
-          ctx.fillText('+', screenX + offsetX, screenY + offsetY);
-        }
         ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
         ctx.fillRect(trash.x - cameraX - 8, trash.y - cameraY - 6, 20, 20);
         
@@ -305,43 +408,106 @@ export default function GameCanvas({ gameState, biome, mapWidth = 800, mapHeight
         const walkCycle = Math.sin(Date.now() / 200 + animal.x) * 2;
         const bounce = Math.abs(Math.sin(Date.now() / 300 + animal.x)) * 2;
         
+        // Shadow
         ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
         ctx.beginPath();
         ctx.ellipse(animal.x - cameraX, animal.y - cameraY + 5, 12, 4, 0, 0, Math.PI * 2);
         ctx.fill();
         
-        ctx.fillStyle = '#ea580c';
+        let bodyColor = '#ea580c';
+        let accentColor = '#fbbf24';
+        let bodySize = 12;
+        
+        // Different colors/sizes for different animal types
+        if (animal.type === 'deer') {
+          bodyColor = '#92400e';
+          accentColor = '#d97706';
+          bodySize = 14;
+        } else if (animal.type === 'bird') {
+          bodyColor = '#3b82f6';
+          accentColor = '#fbbf24';
+          bodySize = 8;
+        } else if (animal.type === 'rabbit') {
+          bodyColor = '#f5f5f4';
+          accentColor = '#fda4af';
+          bodySize = 10;
+        } else if (animal.type === 'fox') {
+          bodyColor = '#ea580c';
+          accentColor = '#fbbf24';
+          bodySize = 11;
+        } else if (animal.type === 'bear') {
+          bodyColor = '#44403c';
+          accentColor = '#78716c';
+          bodySize = 16;
+        } else if (animal.type === 'wolf') {
+          bodyColor = '#6b7280';
+          accentColor = '#e5e7eb';
+          bodySize = 13;
+        } else if (animal.type === 'owl') {
+          bodyColor = '#78350f';
+          accentColor = '#fbbf24';
+          bodySize = 10;
+        } else if (animal.type === 'squirrel') {
+          bodyColor = '#b45309';
+          accentColor = '#f59e0b';
+          bodySize = 9;
+        }
+        
+        // Body
+        ctx.fillStyle = bodyColor;
         ctx.beginPath();
-        ctx.ellipse(animal.x - cameraX, animal.y - cameraY - bounce, 12, 8, 0, 0, Math.PI * 2);
+        ctx.ellipse(animal.x - cameraX, animal.y - cameraY - bounce, bodySize, bodySize * 0.7, 0, 0, Math.PI * 2);
         ctx.fill();
         
-        ctx.strokeStyle = '#c2410c';
+        // Legs
+        ctx.strokeStyle = bodyColor;
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(animal.x - cameraX - 5, animal.y - cameraY + 2 - bounce);
-        ctx.lineTo(animal.x - cameraX - 5 + walkCycle, animal.y - cameraY + 8);
+        ctx.moveTo(animal.x - cameraX - bodySize * 0.4, animal.y - cameraY + 2 - bounce);
+        ctx.lineTo(animal.x - cameraX - bodySize * 0.4 + walkCycle, animal.y - cameraY + 8);
         ctx.stroke();
         
         ctx.beginPath();
-        ctx.moveTo(animal.x - cameraX + 5, animal.y - cameraY + 2 - bounce);
-        ctx.lineTo(animal.x - cameraX + 5 - walkCycle, animal.y - cameraY + 8);
+        ctx.moveTo(animal.x - cameraX + bodySize * 0.4, animal.y - cameraY + 2 - bounce);
+        ctx.lineTo(animal.x - cameraX + bodySize * 0.4 - walkCycle, animal.y - cameraY + 8);
         ctx.stroke();
 
-        ctx.fillStyle = '#fbbf24';
+        // Head
+        ctx.fillStyle = accentColor;
         ctx.beginPath();
-        ctx.arc(animal.x - cameraX + 8, animal.y - cameraY - 4 - bounce, 5, 0, Math.PI * 2);
+        ctx.arc(animal.x - cameraX + bodySize * 0.6, animal.y - cameraY - bodySize * 0.3 - bounce, bodySize * 0.4, 0, Math.PI * 2);
         ctx.fill();
 
+        // Eye
         ctx.fillStyle = '#000';
         ctx.beginPath();
-        ctx.arc(animal.x - cameraX + 9, animal.y - cameraY - 5 - bounce, 1.5, 0, Math.PI * 2);
+        ctx.arc(animal.x - cameraX + bodySize * 0.7, animal.y - cameraY - bodySize * 0.4 - bounce, 1.5, 0, Math.PI * 2);
         ctx.fill();
         
-        ctx.fillStyle = '#f59e0b';
-        ctx.beginPath();
-        ctx.arc(animal.x - cameraX + 11, animal.y - cameraY - 7 - bounce, 2, 0, Math.PI * 2);
-        ctx.fill();
+        // Ear/feature
+        if (animal.type === 'rabbit') {
+          // Long ears
+          ctx.fillStyle = accentColor;
+          ctx.fillRect(animal.x - cameraX + bodySize * 0.5, animal.y - cameraY - bodySize * 0.8 - bounce, 2, 6);
+          ctx.fillRect(animal.x - cameraX + bodySize * 0.7, animal.y - cameraY - bodySize * 0.8 - bounce, 2, 6);
+        } else if (animal.type === 'deer') {
+          // Antlers
+          ctx.strokeStyle = '#78350f';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(animal.x - cameraX + bodySize * 0.6, animal.y - cameraY - bodySize * 0.6 - bounce);
+          ctx.lineTo(animal.x - cameraX + bodySize * 0.5, animal.y - cameraY - bodySize - bounce);
+          ctx.lineTo(animal.x - cameraX + bodySize * 0.7, animal.y - cameraY - bodySize * 0.9 - bounce);
+          ctx.stroke();
+        } else {
+          // Simple ear
+          ctx.fillStyle = bodyColor;
+          ctx.beginPath();
+          ctx.arc(animal.x - cameraX + bodySize * 0.8, animal.y - cameraY - bodySize * 0.6 - bounce, 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
 
+        // Status indicators
         if (animal.sick) {
           const pulse = Math.sin(Date.now() / 200) * 2 + 18;
           ctx.fillStyle = '#fef08a';
@@ -352,6 +518,16 @@ export default function GameCanvas({ gameState, biome, mapWidth = 800, mapHeight
           ctx.strokeStyle = '#ef4444';
           ctx.lineWidth = 2;
           ctx.strokeText('!', animal.x - cameraX, animal.y - cameraY - 20 - bounce);
+        } else if (animal.hungry) {
+          const pulse = Math.sin(Date.now() / 200) * 2 + 16;
+          ctx.fillStyle = '#fde047';
+          ctx.font = `bold ${pulse}px Arial`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('?', animal.x - cameraX, animal.y - cameraY - 20 - bounce);
+          ctx.strokeStyle = '#f59e0b';
+          ctx.lineWidth = 2;
+          ctx.strokeText('?', animal.x - cameraX, animal.y - cameraY - 20 - bounce);
         }
       });
 

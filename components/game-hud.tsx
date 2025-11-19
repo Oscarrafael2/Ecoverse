@@ -8,6 +8,8 @@ export default function GameHUD({ gameState, onAction, onMobileControl, biome })
       { label: 'Apagar', action: 'extinguish', color: 'bg-red-600', disabled: false },
       { label: 'Agua', action: 'collect_water', color: 'bg-cyan-600', disabled: gameState.inventory.water >= 12, count: gameState.inventory.water },
       { label: 'Animal', action: 'help_animal', color: 'bg-purple-600', disabled: false },
+      { label: 'Flor', action: 'collect_flower', color: 'bg-pink-600', disabled: false },
+      { label: 'Hongo', action: 'collect_mushroom', color: 'bg-amber-700', disabled: false },
       { label: 'Excavar', action: 'dig', color: 'bg-amber-600', disabled: gameState.inventory.tools === 0, count: gameState.inventory.tools },
       { label: 'Rellenar', action: 'fill_water', color: 'bg-teal-600', disabled: gameState.inventory.water === 0, count: gameState.inventory.water },
       { label: 'Talar', action: 'chop', color: 'bg-orange-600', disabled: gameState.inventory.axe === 0, count: gameState.inventory.axe },

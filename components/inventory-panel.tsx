@@ -23,6 +23,18 @@ export default function InventoryPanel({ inventory }) {
           <span className="bg-red-600 text-white px-2 py-1 rounded font-bold text-xs sm:text-sm">{inventory.medicine}</span>
         </div>
         <div className="flex justify-between items-center bg-slate-700 p-2 rounded">
+          <span className="text-xs sm:text-sm">Comida</span>
+          <span className="bg-lime-600 text-white px-2 py-1 rounded font-bold text-xs sm:text-sm">{inventory.food || 0}</span>
+        </div>
+        <div className="flex justify-between items-center bg-slate-700 p-2 rounded">
+          <span className="text-xs sm:text-sm">Flores</span>
+          <span className="bg-pink-500 text-white px-2 py-1 rounded font-bold text-xs sm:text-sm">{inventory.flowers || 0}</span>
+        </div>
+        <div className="flex justify-between items-center bg-slate-700 p-2 rounded">
+          <span className="text-xs sm:text-sm">Hongos</span>
+          <span className="bg-amber-600 text-white px-2 py-1 rounded font-bold text-xs sm:text-sm">{inventory.mushrooms || 0}</span>
+        </div>
+        <div className="flex justify-between items-center bg-slate-700 p-2 rounded">
           <span className="text-xs sm:text-sm">Metal</span>
           <span className="bg-gray-600 text-white px-2 py-1 rounded font-bold text-xs sm:text-sm">{inventory.metal}</span>
         </div>
