@@ -8,6 +8,7 @@ import MissionPanel from '@/components/mission-panel';
 import BiomeSelector from '@/components/biome-selector';
 import HowToPlayModal from '@/components/how-to-play-modal';
 import UpgradeShop from '@/components/upgrade-shop';
+import StatsPanel from '@/components/stats-panel';
 import { SoundManager } from '@/lib/sound-manager';
 import { SaveManager } from '@/lib/save-manager';
 
@@ -21,60 +22,81 @@ const RANDOM_MISSIONS = [
   { name: 'Ayuda 4 animales', type: 'animal', target: 4, reward: 70 },
   { name: 'Cura 3 animales enfermos', type: 'sick_animal', target: 3, reward: 120 },
   { name: 'Recoge 8 recursos', type: 'resource', target: 8, reward: 50 },
+  { name: 'Alimenta 6 animales', type: 'feed_animal', target: 6, reward: 65 },
+  { name: 'Recoge 10 flores', type: 'flower', target: 10, reward: 45 },
+  { name: 'Recoge 8 hongos', type: 'mushroom', target: 8, reward: 55 },
   { name: 'Planta 15 árboles DESAFÍO', type: 'plant', target: 15, reward: 150, isChallenge: true },
   { name: 'Apaga 7 incendios DESAFÍO', type: 'extinguish', target: 7, reward: 200, isChallenge: true },
+  { name: 'Alimenta 12 animales DESAFÍO', type: 'feed_animal', target: 12, reward: 180, isChallenge: true },
 ];
 
 const SPECIAL_MISSIONS = [
   { name: 'Salvar el bosque: Apaga 5 incendios en 3 minutos', type: 'timed_extinguish', target: 5, timeLimit: 180, reward: 250 },
   { name: 'Operación limpieza: 20 basuras', type: 'clean', target: 20, reward: 180, isSpecial: true },
   { name: 'Veterinario: Cura 6 animales enfermos', type: 'sick_animal', target: 6, reward: 200, isSpecial: true },
+  { name: 'Guardabosques: Alimenta 15 animales', type: 'feed_animal', target: 15, reward: 220, isSpecial: true },
 ];
 
 const BIOME_CONFIGS = {
   tropical: {
     name: 'Tropical',
-    treeCount: 45, // Increased from 35 to 45
-    animalCount: 8, // Initial animals
+    treeCount: 45,
+    animalCount: 12, // Increased from 8 to 12
     waterSpots: 8,
+    flowerCount: 20, // New: flowers
+    bushCount: 15, // New: bushes
+    mushroomCount: 10, // New: mushrooms
+    rockCount: 8, // New: rocks
     initialHealth: 75,
     mapWidth: 1200,
     mapHeight: 900,
     description: 'Selva densa con muchos árboles',
-    startingInventory: { seeds: 25, water: 8, tools: 15, axe: 3, metal: 0, plastic: 0, wood: 0, medicine: 5 }
+    startingInventory: { seeds: 25, water: 8, tools: 15, axe: 3, metal: 0, plastic: 0, wood: 0, medicine: 5, food: 10, flowers: 0, mushrooms: 0 }
   },
   savanna: {
     name: 'Sabana',
-    treeCount: 28, // Increased from 18 to 28
-    animalCount: 12, // Initial animals - more because it's a savanna
+    treeCount: 28,
+    animalCount: 16, // Increased from 12 to 16
     waterSpots: 4,
+    flowerCount: 30,
+    bushCount: 20,
+    mushroomCount: 5,
+    rockCount: 12,
     initialHealth: 65,
     mapWidth: 1200,
     mapHeight: 900,
     description: 'Llanura con pocos árboles',
-    startingInventory: { seeds: 35, water: 10, tools: 20, axe: 2, metal: 0, plastic: 0, wood: 0, medicine: 6 }
+    startingInventory: { seeds: 35, water: 10, tools: 20, axe: 2, metal: 0, plastic: 0, wood: 0, medicine: 6, food: 15, flowers: 0, mushrooms: 0 }
   },
   desert: {
     name: 'Desierto',
-    treeCount: 8, // Increased from 3 to 8
-    animalCount: 6, // Initial animals
+    treeCount: 8,
+    animalCount: 8, // Increased from 6 to 8
     waterSpots: 2,
+    flowerCount: 8,
+    bushCount: 5,
+    mushroomCount: 2,
+    rockCount: 20,
     initialHealth: 50,
     mapWidth: 1200,
     mapHeight: 900,
     description: 'Arena árida, sin árboles naturales',
-    startingInventory: { seeds: 50, water: 15, tools: 25, axe: 1, metal: 0, plastic: 0, wood: 0, medicine: 8 }
+    startingInventory: { seeds: 50, water: 15, tools: 25, axe: 1, metal: 0, plastic: 0, wood: 0, medicine: 8, food: 12, flowers: 0, mushrooms: 0 }
   },
   freshwater: {
     name: 'Agua Dulce',
-    treeCount: 22, // Increased from 12 to 22
-    animalCount: 10, // Initial animals
+    treeCount: 22,
+    animalCount: 14, // Increased from 10 to 14
     waterSpots: 20,
+    flowerCount: 25,
+    bushCount: 18,
+    mushroomCount: 15,
+    rockCount: 10,
     initialHealth: 80,
     mapWidth: 1200,
     mapHeight: 900,
     description: 'Lago y ríos con vegetación',
-    startingInventory: { seeds: 30, water: 12, tools: 18, axe: 3, metal: 0, plastic: 0, wood: 0, medicine: 7 }
+    startingInventory: { seeds: 30, water: 12, tools: 18, axe: 3, metal: 0, plastic: 0, wood: 0, medicine: 7, food: 12, flowers: 0, mushrooms: 0 }
   }
 };
 
@@ -105,7 +127,7 @@ export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
   const [musicEnabled, setMusicEnabled] = useState(true);
   const [sfxEnabled, setSfxEnabled] = useState(true);
-  const [activeTab, setActiveTab] = useState('controls'); // 'controls', 'inventory', 'missions'
+  const [activeTab, setActiveTab] = useState('controls');
   const gameCanvasRef = useRef(null);
   const inputRef = useRef({});
   const mobileInputRef = useRef({});
@@ -113,6 +135,7 @@ export default function Home() {
   const difficultyLevelRef = useRef(1);
   const soundManagerRef = useRef(null);
   const autoSaveIntervalRef = useRef(null);
+  const previousPosRef = useRef(null);
 
   useEffect(() => {
     soundManagerRef.current = new SoundManager();
@@ -151,15 +174,18 @@ export default function Home() {
       });
     }
 
+    const animalTypes = ['deer', 'bird', 'rabbit', 'fox', 'bear', 'wolf', 'owl', 'squirrel'];
     const initialAnimals = [];
     for (let i = 0; i < config.animalCount; i++) {
-      const isSick = Math.random() < 0.4; // 40% chance of being sick
+      const isSick = Math.random() < 0.3; // 30% chance of being sick
+      const isHungry = Math.random() < 0.4; // 40% chance of being hungry
       initialAnimals.push({
         id: `init_animal_${i}`,
         x: Math.random() * config.mapWidth,
         y: Math.random() * config.mapHeight,
-        type: ['deer', 'bird', 'rabbit', 'fox'][Math.floor(Math.random() * 4)],
+        type: animalTypes[Math.floor(Math.random() * animalTypes.length)],
         sick: isSick,
+        hungry: isHungry,
       });
     }
 
@@ -169,6 +195,45 @@ export default function Home() {
         id: `water_${i}`,
         x: Math.random() * config.mapWidth,
         y: Math.random() * config.mapHeight,
+      });
+    }
+
+    const initialFlowers = [];
+    for (let i = 0; i < config.flowerCount; i++) {
+      initialFlowers.push({
+        id: `flower_${i}`,
+        x: Math.random() * config.mapWidth,
+        y: Math.random() * config.mapHeight,
+        color: ['red', 'yellow', 'purple', 'pink', 'blue'][Math.floor(Math.random() * 5)],
+      });
+    }
+
+    const initialBushes = [];
+    for (let i = 0; i < config.bushCount; i++) {
+      initialBushes.push({
+        id: `bush_${i}`,
+        x: Math.random() * config.mapWidth,
+        y: Math.random() * config.mapHeight,
+      });
+    }
+
+    const initialMushrooms = [];
+    for (let i = 0; i < config.mushroomCount; i++) {
+      initialMushrooms.push({
+        id: `mushroom_${i}`,
+        x: Math.random() * config.mapWidth,
+        y: Math.random() * config.mapHeight,
+        type: ['red', 'brown', 'yellow'][Math.floor(Math.random() * 3)],
+      });
+    }
+
+    const initialRocks = [];
+    for (let i = 0; i < config.rockCount; i++) {
+      initialRocks.push({
+        id: `rock_${i}`,
+        x: Math.random() * config.mapWidth,
+        y: Math.random() * config.mapHeight,
+        size: Math.random() * 0.5 + 0.8,
       });
     }
 
@@ -186,9 +251,13 @@ export default function Home() {
       water: initialWater,
       trash: [],
       fires: [],
-      animals: initialAnimals, // Use initial animals
+      animals: initialAnimals,
       holes: [],
       resources: [],
+      flowers: initialFlowers, // New
+      bushes: initialBushes, // New
+      mushrooms: initialMushrooms, // New
+      rocks: initialRocks, // New
       gameOver: false,
       gameWon: false,
       message: '',
@@ -199,9 +268,29 @@ export default function Home() {
         range: 1,
         efficiency: 1,
       },
+      stats: {
+        treesPlanted: 0,
+        treesChopped: 0,
+        trashCleaned: 0,
+        plasticCleaned: 0,
+        metalCleaned: 0,
+        firesExtinguished: 0,
+        animalsHelped: 0,
+        animalsCured: 0,
+        animalsFed: 0, // New
+        distanceTraveled: 0,
+        resourcesCollected: 0,
+        waterCollected: 0,
+        holesDigged: 0,
+        holesFilled: 0,
+        missionsCompleted: 0,
+        flowersCollected: 0, // New
+        mushroomsCollected: 0, // New
+      },
     };
 
     setGameState(initialState);
+    previousPosRef.current = { x: config.mapWidth / 2, y: config.mapHeight / 2 };
     eventCounterRef.current = 0;
     difficultyLevelRef.current = 1;
 
@@ -253,8 +342,8 @@ export default function Home() {
         const baseEventInterval = 20;
         const timePlayed = Math.floor(eventCounterRef.current / 60);
         difficultyLevelRef.current = Math.min(5, 1 + Math.floor(timePlayed / 30));
-        const eventChance = 0.02 + (difficultyLevelRef.current - 1) * 0.015;
-        const eventInterval = Math.max(10, baseEventInterval - (difficultyLevelRef.current - 1) * 2);
+        const eventChance = 0.05 + (difficultyLevelRef.current - 1) * 0.02;
+        const eventInterval = Math.max(8, baseEventInterval - (difficultyLevelRef.current - 1) * 2);
 
         const baseSpeed = 4;
         const speed = baseSpeed + (prev.upgrades.speed - 1) * 1.5;
@@ -269,8 +358,20 @@ export default function Home() {
           y: Math.max(0, Math.min(config.mapHeight, prev.playerPos.y + moveY)),
         };
 
+        if (previousPosRef.current) {
+          const distanceMoved = Math.hypot(
+            newState.playerPos.x - previousPosRef.current.x,
+            newState.playerPos.y - previousPosRef.current.y
+          );
+          newState.stats = {
+            ...prev.stats,
+            distanceTraveled: prev.stats.distanceTraveled + distanceMoved,
+          };
+        }
+        previousPosRef.current = { ...newState.playerPos };
+
         if (eventCounterRef.current % eventInterval === 0 && Math.random() < eventChance) {
-          const eventTypes = ['fire', 'trash', 'animal', 'animal', 'resource']; // Double animal chance
+          const eventTypes = ['fire', 'trash', 'trash', 'animal', 'animal', 'resource', 'flower', 'mushroom'];
           const eventType = eventTypes[Math.floor(Math.random() * eventTypes.length)];
           
           if (eventType === 'fire' && newState.fires.length < 5 + difficultyLevelRef.current) {
@@ -282,7 +383,7 @@ export default function Home() {
             });
             newState.biomeHealth = Math.max(20, newState.biomeHealth - 5);
             newState.message = 'INCENDIO FORESTAL!';
-          } else if (eventType === 'trash' && newState.trash.length < 15 + difficultyLevelRef.current * 2) {
+          } else if (eventType === 'trash' && newState.trash.length < 25 + difficultyLevelRef.current * 3) {
             newState.trash.push({
               id: Date.now() + Math.random(),
               x: Math.random() * config.mapWidth,
@@ -292,16 +393,19 @@ export default function Home() {
             newState.biomeHealth = Math.max(20, newState.biomeHealth - 2);
             newState.message = 'BASURA ACUMULADA!';
           } else if (eventType === 'animal') {
-            const isSick = Math.random() < 0.5; // 50% chance of being sick
+            const isSick = Math.random() < 0.4;
+            const isHungry = Math.random() < 0.5;
+            const animalTypes = ['deer', 'bird', 'rabbit', 'fox', 'bear', 'wolf', 'owl', 'squirrel'];
             newState.animals.push({
               id: Date.now() + Math.random(),
               x: Math.random() * config.mapWidth,
               y: Math.random() * config.mapHeight,
-              type: ['deer', 'bird', 'rabbit', 'fox'][Math.floor(Math.random() * 4)],
+              type: animalTypes[Math.floor(Math.random() * animalTypes.length)],
               sick: isSick,
+              hungry: isHungry,
             });
-            newState.message = isSick ? 'Animal enfermo necesita ayuda!' : 'Animal aparecio!';
-          } else if (eventType === 'resource' && newState.resources.length < 10) {
+            newState.message = isSick ? 'Animal enfermo!' : isHungry ? 'Animal hambriento!' : 'Animal aparecio!';
+          } else if (eventType === 'resource' && newState.resources.length < 15) {
             newState.resources.push({
               id: Date.now() + Math.random(),
               x: Math.random() * config.mapWidth,
@@ -309,6 +413,20 @@ export default function Home() {
               type: ['metal', 'plastic', 'wood'][Math.floor(Math.random() * 3)],
             });
             newState.message = 'Recurso encontrado!';
+          } else if (eventType === 'flower' && newState.flowers.length < config.flowerCount + 10) {
+            newState.flowers.push({
+              id: Date.now() + Math.random(),
+              x: Math.random() * config.mapWidth,
+              y: Math.random() * config.mapHeight,
+              color: ['red', 'yellow', 'purple', 'pink', 'blue'][Math.floor(Math.random() * 5)],
+            });
+          } else if (eventType === 'mushroom' && newState.mushrooms.length < config.mushroomCount + 5) {
+            newState.mushrooms.push({
+              id: Date.now() + Math.random(),
+              x: Math.random() * config.mapWidth,
+              y: Math.random() * config.mapHeight,
+              type: ['red', 'brown', 'yellow'][Math.floor(Math.random() * 3)],
+            });
           }
         }
 
@@ -330,6 +448,10 @@ export default function Home() {
               soundManagerRef.current.playSoundEffect('mission_complete');
             }
             newState.score += mission.reward;
+            newState.stats = {
+              ...newState.stats,
+              missionsCompleted: newState.stats.missionsCompleted + 1,
+            };
             return { ...mission, completed: true };
           }
           return mission;
@@ -373,9 +495,10 @@ export default function Home() {
       const efficiency = prev.upgrades.efficiency;
 
       if (action === 'plant' && prev.inventory.seeds > 0) {
+        const minPlantingDistance = 30;
         const closestTree = prev.trees.reduce((closest, tree) => {
           const dist = Math.hypot(tree.x - prev.playerPos.x, tree.y - prev.playerPos.y);
-          return dist < range && (!closest || dist < Math.hypot(closest.x - prev.playerPos.x, closest.y - prev.playerPos.y)) ? tree : closest;
+          return dist < minPlantingDistance && (!closest || dist < Math.hypot(closest.x - prev.playerPos.x, closest.y - prev.playerPos.y)) ? tree : closest;
         }, null);
 
         if (!closestTree) {
@@ -394,9 +517,135 @@ export default function Home() {
           newState.message = 'Árbol plantado!';
           feedbackType = 'plant';
           feedbackPos = treePos;
+          newState.stats = {
+            ...prev.stats,
+            treesPlanted: prev.stats.treesPlanted + 1,
+          };
           
           newState.missions = newState.missions.map(m => 
             m.type === 'plant' && !m.completed ? { ...m, current: Math.min(m.target, m.current + 1) } : m
+          );
+        } else {
+          newState.message = 'Muy cerca de otro árbol!';
+        }
+      }
+      else if (action === 'help_animal') {
+        const closestAnimal = prev.animals.reduce((closest, animal) => {
+          const dist = Math.hypot(animal.x - prev.playerPos.x, animal.y - prev.playerPos.y);
+          return dist < range && (!closest || dist < Math.hypot(closest.x - prev.playerPos.x, closest.y - prev.playerPos.y)) ? animal : closest;
+        }, null);
+
+        if (closestAnimal) {
+          let shouldRemove = true;
+          let pointsGained = 25;
+          let animalsCured = 0;
+          let animalsFed = 0;
+          
+          if (closestAnimal.sick) {
+            if (newState.inventory.medicine > 0) {
+              newState.inventory.medicine--;
+              pointsGained = 40;
+              newState.message = 'Animal curado!';
+              animalsCured = 1;
+              
+              newState.missions = newState.missions.map(m => 
+                m.type === 'sick_animal' && !m.completed ? { ...m, current: Math.min(m.target, m.current + 1) } : m
+              );
+            } else {
+              pointsGained = 10;
+              newState.message = 'Animal enfermo sin medicina!';
+              shouldRemove = false;
+            }
+          } else if (closestAnimal.hungry) {
+            if (newState.inventory.food > 0) {
+              newState.inventory.food--;
+              pointsGained = 30;
+              newState.message = 'Animal alimentado!';
+              animalsFed = 1;
+              
+              newState.missions = newState.missions.map(m => 
+                m.type === 'feed_animal' && !m.completed ? { ...m, current: Math.min(m.target, m.current + 1) } : m
+              );
+            } else {
+              pointsGained = 5;
+              newState.message = 'Animal hambriento sin comida!';
+              shouldRemove = false;
+            }
+          } else {
+            newState.message = 'Animal ayudado!';
+          }
+          
+          if (shouldRemove) {
+            newState.animals = prev.animals.filter(a => a.id !== closestAnimal.id);
+          }
+          
+          const healthGain = shouldRemove ? 2 * efficiency : 1;
+          newState.biomeHealth = Math.min(100, newState.biomeHealth + healthGain);
+          newState.score += pointsGained;
+          feedbackType = 'animal';
+          feedbackPos = closestAnimal;
+          newState.stats = {
+            ...prev.stats,
+            animalsHelped: prev.stats.animalsHelped + (shouldRemove ? 1 : 0),
+            animalsCured: prev.stats.animalsCured + animalsCured,
+            animalsFed: prev.stats.animalsFed + animalsFed,
+          };
+          
+          newState.missions = newState.missions.map(m => 
+            m.type === 'animal' && !m.completed && shouldRemove ? { ...m, current: Math.min(m.target, m.current + 1) } : m
+          );
+        }
+      }
+      else if (action === 'collect_flower') {
+        const closestFlower = prev.flowers.reduce((closest, flower) => {
+          const dist = Math.hypot(flower.x - prev.playerPos.x, flower.y - prev.playerPos.y);
+          return dist < range && (!closest || dist < Math.hypot(closest.x - prev.playerPos.x, closest.y - prev.playerPos.y)) ? flower : closest;
+        }, null);
+
+        if (closestFlower) {
+          newState.flowers = prev.flowers.filter(f => f.id !== closestFlower.id);
+          newState.inventory.flowers = (newState.inventory.flowers || 0) + 1;
+          newState.biomeHealth = Math.min(100, newState.biomeHealth + 1);
+          newState.score += 8;
+          newState.message = 'Flor recogida!';
+          feedbackType = 'collect';
+          feedbackPos = closestFlower;
+          newState.stats = {
+            ...prev.stats,
+            flowersCollected: prev.stats.flowersCollected + 1,
+          };
+          
+          newState.missions = newState.missions.map(m => 
+            m.type === 'flower' && !m.completed ? { ...m, current: Math.min(m.target, m.current + 1) } : m
+          );
+        }
+      }
+      else if (action === 'collect_mushroom') {
+        const closestMushroom = prev.mushrooms.reduce((closest, mushroom) => {
+          const dist = Math.hypot(mushroom.x - prev.playerPos.x, mushroom.y - prev.playerPos.y);
+          return dist < range && (!closest || dist < Math.hypot(closest.x - prev.playerPos.x, closest.y - prev.playerPos.y)) ? mushroom : closest;
+        }, null);
+
+        if (closestMushroom) {
+          newState.mushrooms = prev.mushrooms.filter(m => m.id !== closestMushroom.id);
+          newState.inventory.mushrooms = (newState.inventory.mushrooms || 0) + 1;
+          // Mushrooms can be used as food
+          if (Math.random() < 0.5) {
+            newState.inventory.food = (newState.inventory.food || 0) + 1;
+            newState.message = 'Hongo comestible!';
+          } else {
+            newState.message = 'Hongo recogido!';
+          }
+          newState.score += 12;
+          feedbackType = 'collect';
+          feedbackPos = closestMushroom;
+          newState.stats = {
+            ...prev.stats,
+            mushroomsCollected: prev.stats.mushroomsCollected + 1,
+          };
+          
+          newState.missions = newState.missions.map(m => 
+            m.type === 'mushroom' && !m.completed ? { ...m, current: Math.min(m.target, m.current + 1) } : m
           );
         }
       }
@@ -414,6 +663,10 @@ export default function Home() {
           newState.message = 'Árbol talado!';
           feedbackType = 'chop';
           feedbackPos = closestTree;
+          newState.stats = {
+            ...prev.stats,
+            treesChopped: prev.stats.treesChopped + 1,
+          };
           
           newState.missions = newState.missions.map(m => 
             m.type === 'chop' && !m.completed ? { ...m, current: Math.min(m.target, m.current + 1) } : m
@@ -441,6 +694,10 @@ export default function Home() {
           newState.message = 'Pozo excavado!';
           feedbackType = 'dig';
           feedbackPos = holePos;
+          newState.stats = {
+            ...prev.stats,
+            holesDigged: prev.stats.holesDigged + 1,
+          };
         }
       }
       else if (action === 'fill_water' && prev.inventory.water > 0) {
@@ -460,6 +717,10 @@ export default function Home() {
           newState.message = 'Agua puesta en pozo!';
           feedbackType = 'water';
           feedbackPos = closestHole;
+          newState.stats = {
+            ...prev.stats,
+            holesFilled: prev.stats.holesFilled + 1,
+          };
           
           newState.missions = newState.missions.map(m => 
             m.type === 'dig_fill' && !m.completed ? { ...m, current: Math.min(m.target, m.current + 1) } : m
@@ -483,6 +744,12 @@ export default function Home() {
           newState.message = 'Basura limpiada!';
           feedbackType = 'clean';
           feedbackPos = closestTrash;
+          newState.stats = {
+            ...prev.stats,
+            trashCleaned: prev.stats.trashCleaned + 1,
+            plasticCleaned: closestTrash.type === 'plastic' ? prev.stats.plasticCleaned + 1 : prev.stats.plasticCleaned,
+            metalCleaned: closestTrash.type === 'metal' ? prev.stats.metalCleaned + 1 : prev.stats.metalCleaned,
+          };
           
           newState.missions = newState.missions.map(m => 
             m.type === 'clean' && !m.completed ? { ...m, current: Math.min(m.target, m.current + 1) } : m
@@ -503,45 +770,13 @@ export default function Home() {
           newState.message = 'Incendio apagado!';
           feedbackType = 'extinguish';
           feedbackPos = closestFire;
+          newState.stats = {
+            ...prev.stats,
+            firesExtinguished: prev.stats.firesExtinguished + 1,
+          };
           
           newState.missions = newState.missions.map(m => 
             (m.type === 'extinguish' || m.type === 'timed_extinguish') && !m.completed ? { ...m, current: Math.min(m.target, m.current + 1) } : m
-          );
-        }
-      }
-      else if (action === 'help_animal') {
-        const closestAnimal = prev.animals.reduce((closest, animal) => {
-          const dist = Math.hypot(animal.x - prev.playerPos.x, animal.y - prev.playerPos.y);
-          return dist < range && (!closest || dist < Math.hypot(closest.x - prev.playerPos.x, closest.y - prev.playerPos.y)) ? animal : closest;
-        }, null);
-
-        if (closestAnimal) {
-          newState.animals = prev.animals.filter(a => a.id !== closestAnimal.id);
-          const healthGain = 2 * efficiency;
-          newState.biomeHealth = Math.min(100, newState.biomeHealth + healthGain);
-          let pointsGained = 25;
-          if (closestAnimal.sick) {
-            if (newState.inventory.medicine > 0) {
-              newState.inventory.medicine--;
-              pointsGained = 40;
-              newState.message = 'Animal curado!';
-              
-              newState.missions = newState.missions.map(m => 
-                m.type === 'sick_animal' && !m.completed ? { ...m, current: Math.min(m.target, m.current + 1) } : m
-              );
-            } else {
-              pointsGained = 10;
-              newState.message = 'Animal enfermo sin medicina!';
-            }
-          } else {
-            newState.message = 'Animal ayudado!';
-          }
-          newState.score += pointsGained;
-          feedbackType = 'animal';
-          feedbackPos = closestAnimal;
-          
-          newState.missions = newState.missions.map(m => 
-            m.type === 'animal' && !m.completed ? { ...m, current: Math.min(m.target, m.current + 1) } : m
           );
         }
       }
@@ -559,6 +794,10 @@ export default function Home() {
           newState.message = 'Agua recogida!';
           feedbackType = 'collect';
           feedbackPos = closestWater;
+          newState.stats = {
+            ...prev.stats,
+            waterCollected: prev.stats.waterCollected + 1,
+          };
 
           newState.missions = newState.missions.map(m => 
             m.type === 'water' && !m.completed ? { ...m, current: Math.min(m.target, m.current + 1) } : m
@@ -580,6 +819,10 @@ export default function Home() {
           newState.message = `${closestResource.type} recogido!`;
           feedbackType = 'collect';
           feedbackPos = closestResource;
+          newState.stats = {
+            ...prev.stats,
+            resourcesCollected: prev.stats.resourcesCollected + 1,
+          };
           
           newState.missions = newState.missions.map(m => 
             m.type === 'resource' && !m.completed ? { ...m, current: Math.min(m.target, m.current + 1) } : m
@@ -841,23 +1084,18 @@ export default function Home() {
 
       {(gameState.gameOver || gameState.gameWon) && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 border-4 border-green-400 p-6 sm:p-8 text-center rounded-lg max-w-md w-full">
-            <div className="text-2xl sm:text-3xl font-bold mb-4 text-green-400">
-              {gameState.gameWon ? 'VICTORIA!' : 'DERROTA'}
-            </div>
-            <div className="text-base sm:text-xl text-white mb-2">
-              {gameState.gameWon 
-                ? 'Restauraste el bioma! Salud: 100%' 
-                : 'El bioma fue destruido. Salud: 20%'}
-            </div>
-            <div className="text-sm sm:text-lg text-yellow-400 mb-6 font-semibold">
-              Puntuación Final: {gameState.score}
-            </div>
+          <div className="flex flex-col items-center gap-4">
+            <StatsPanel
+              stats={gameState.stats}
+              score={gameState.score}
+              biomeHealth={gameState.biomeHealth}
+              gameWon={gameState.gameWon}
+            />
             <button
               onClick={resetGame}
-              className="bg-green-500 hover:bg-green-600 text-black font-bold px-6 py-3 rounded transition text-sm sm:text-base w-full sm:w-auto"
+              className="bg-green-500 hover:bg-green-600 text-black font-bold px-8 py-3 rounded transition text-lg"
             >
-              Cambiar Bioma
+              Jugar de Nuevo
             </button>
           </div>
         </div>
