@@ -47,7 +47,10 @@ const BIOME_CONFIGS = {
     bushCount: 15, // New: bushes
     mushroomCount: 10, // New: mushrooms
     rockCount: 8, // New: rocks
-    initialHealth: 75,
+    initialHealth: 30, // Changed from 75
+    initialFires: 4,
+    initialTrash: 15,
+    initialDryTrees: 0.6, // 60% of trees start dry
     mapWidth: 1200,
     mapHeight: 900,
     description: 'Selva densa con muchos árboles',
@@ -62,7 +65,10 @@ const BIOME_CONFIGS = {
     bushCount: 20,
     mushroomCount: 5,
     rockCount: 12,
-    initialHealth: 65,
+    initialHealth: 25, // Changed from 65
+    initialFires: 5,
+    initialTrash: 18,
+    initialDryTrees: 0.7,
     mapWidth: 1200,
     mapHeight: 900,
     description: 'Llanura con pocos árboles',
@@ -77,7 +83,10 @@ const BIOME_CONFIGS = {
     bushCount: 5,
     mushroomCount: 2,
     rockCount: 20,
-    initialHealth: 50,
+    initialHealth: 20, // Changed from 50
+    initialFires: 3,
+    initialTrash: 12,
+    initialDryTrees: 0.8,
     mapWidth: 1200,
     mapHeight: 900,
     description: 'Arena árida, sin árboles naturales',
@@ -92,7 +101,10 @@ const BIOME_CONFIGS = {
     bushCount: 18,
     mushroomCount: 15,
     rockCount: 10,
-    initialHealth: 80,
+    initialHealth: 35, // Changed from 80
+    initialFires: 3,
+    initialTrash: 10,
+    initialDryTrees: 0.5,
     mapWidth: 1200,
     mapHeight: 900,
     description: 'Lago y ríos con vegetación',
@@ -166,11 +178,15 @@ export default function Home() {
     setSelectedBiome(biome);
     
     const initialTrees = [];
+    const now = Date.now();
     for (let i = 0; i < config.treeCount; i++) {
+      const isDry = Math.random() < config.initialDryTrees;
       initialTrees.push({
         id: `init_tree_${i}`,
         x: Math.random() * config.mapWidth,
         y: Math.random() * config.mapHeight,
+        stage: isDry ? 'dry' : 'adult', // dry or adult at start
+        plantedAt: now - (isDry ? 180000 : 90000), // Simulate age
       });
     }
 
@@ -186,6 +202,9 @@ export default function Home() {
         type: animalTypes[Math.floor(Math.random() * animalTypes.length)],
         sick: isSick,
         hungry: isHungry,
+        targetX: Math.random() * config.mapWidth,
+        targetY: Math.random() * config.mapHeight,
+        speed: 0.5 + Math.random() * 1,
       });
     }
 
@@ -237,6 +256,26 @@ export default function Home() {
       });
     }
 
+    const initialTrash = [];
+    for (let i = 0; i < config.initialTrash; i++) {
+      initialTrash.push({
+        id: `init_trash_${i}`,
+        x: Math.random() * config.mapWidth,
+        y: Math.random() * config.mapHeight,
+        type: ['plastic', 'metal', 'general'][Math.floor(Math.random() * 3)],
+      });
+    }
+
+    const initialFires = [];
+    for (let i = 0; i < config.initialFires; i++) {
+      initialFires.push({
+        id: `init_fire_${i}`,
+        x: Math.random() * config.mapWidth,
+        y: Math.random() * config.mapHeight,
+        intensity: 100,
+      });
+    }
+
     const initialState = {
       biome,
       biomeHealth: config.initialHealth,
@@ -249,8 +288,8 @@ export default function Home() {
       ],
       trees: initialTrees,
       water: initialWater,
-      trash: [],
-      fires: [],
+      trash: initialTrash, // Changed from []
+      fires: initialFires, // Changed from []
       animals: initialAnimals,
       holes: [],
       resources: [],
@@ -271,6 +310,8 @@ export default function Home() {
       stats: {
         treesPlanted: 0,
         treesChopped: 0,
+        dryTreesChopped: 0, // New
+        healthyTreesChopped: 0, // New
         trashCleaned: 0,
         plasticCleaned: 0,
         metalCleaned: 0,
@@ -370,6 +411,48 @@ export default function Home() {
         }
         previousPosRef.current = { ...newState.playerPos };
 
+        const now = Date.now();
+        newState.trees = prev.trees.map(tree => {
+          const age = now - tree.plantedAt;
+          const seconds = age / 1000;
+          
+          let newStage = tree.stage;
+          if (seconds >= 90 && tree.stage !== 'dry') {
+            newStage = 'dry'; // After 90 seconds, tree becomes dry
+          } else if (seconds >= 60 && tree.stage === 'medium') {
+            newStage = 'adult'; // After 60 seconds, medium becomes adult
+          } else if (seconds >= 30 && tree.stage === 'small') {
+            newStage = 'medium'; // After 30 seconds, small becomes medium
+          }
+          
+          return { ...tree, stage: newStage };
+        });
+
+        newState.animals = prev.animals.map(animal => {
+          const dx = animal.targetX - animal.x;
+          const dy = animal.targetY - animal.y;
+          const distance = Math.hypot(dx, dy);
+          
+          // If reached target or very close, pick new target
+          if (distance < 5) {
+            return {
+              ...animal,
+              targetX: Math.random() * config.mapWidth,
+              targetY: Math.random() * config.mapHeight,
+            };
+          }
+          
+          // Move towards target
+          const moveX = (dx / distance) * animal.speed;
+          const moveY = (dy / distance) * animal.speed;
+          
+          return {
+            ...animal,
+            x: Math.max(0, Math.min(config.mapWidth, animal.x + moveX)),
+            y: Math.max(0, Math.min(config.mapHeight, animal.y + moveY)),
+          };
+        });
+
         if (eventCounterRef.current % eventInterval === 0 && Math.random() < eventChance) {
           const eventTypes = ['fire', 'trash', 'trash', 'animal', 'animal', 'resource', 'flower', 'mushroom'];
           const eventType = eventTypes[Math.floor(Math.random() * eventTypes.length)];
@@ -396,14 +479,18 @@ export default function Home() {
             const isSick = Math.random() < 0.4;
             const isHungry = Math.random() < 0.5;
             const animalTypes = ['deer', 'bird', 'rabbit', 'fox', 'bear', 'wolf', 'owl', 'squirrel'];
-            newState.animals.push({
+            const newAnimal = {
               id: Date.now() + Math.random(),
               x: Math.random() * config.mapWidth,
               y: Math.random() * config.mapHeight,
               type: animalTypes[Math.floor(Math.random() * animalTypes.length)],
               sick: isSick,
               hungry: isHungry,
-            });
+              targetX: Math.random() * config.mapWidth,
+              targetY: Math.random() * config.mapHeight,
+              speed: 0.5 + Math.random() * 1,
+            };
+            newState.animals.push(newAnimal);
             newState.message = isSick ? 'Animal enfermo!' : isHungry ? 'Animal hambriento!' : 'Animal aparecio!';
           } else if (eventType === 'resource' && newState.resources.length < 15) {
             newState.resources.push({
@@ -509,6 +596,8 @@ export default function Home() {
           newState.trees.push({
             id: Date.now(),
             ...treePos,
+            stage: 'small',
+            plantedAt: Date.now(),
           });
           newState.inventory.seeds--;
           const healthGain = 4 * efficiency;
@@ -657,16 +746,33 @@ export default function Home() {
 
         if (closestTree) {
           newState.trees = prev.trees.filter(t => t.id !== closestTree.id);
-          newState.biomeHealth = Math.max(20, newState.biomeHealth - 3);
           newState.inventory.wood++;
-          newState.score -= 10;
-          newState.message = 'Árbol talado!';
+          
+          if (closestTree.stage === 'dry') {
+            // Chopping dry tree is GOOD - gives points and health
+            const healthGain = 3 * efficiency;
+            newState.biomeHealth = Math.min(100, newState.biomeHealth + healthGain);
+            newState.score += 15;
+            newState.message = 'Árbol seco talado! +Puntos';
+            newState.stats = {
+              ...prev.stats,
+              treesChopped: prev.stats.treesChopped + 1,
+              dryTreesChopped: prev.stats.dryTreesChopped + 1,
+            };
+          } else {
+            // Chopping healthy tree is BAD - loses points and health
+            newState.biomeHealth = Math.max(20, newState.biomeHealth - 5);
+            newState.score -= 20;
+            newState.message = 'Árbol sano talado! -Puntos';
+            newState.stats = {
+              ...prev.stats,
+              treesChopped: prev.stats.treesChopped + 1,
+              healthyTreesChopped: prev.stats.healthyTreesChopped + 1,
+            };
+          }
+          
           feedbackType = 'chop';
           feedbackPos = closestTree;
-          newState.stats = {
-            ...prev.stats,
-            treesChopped: prev.stats.treesChopped + 1,
-          };
           
           newState.missions = newState.missions.map(m => 
             m.type === 'chop' && !m.completed ? { ...m, current: Math.min(m.target, m.current + 1) } : m
