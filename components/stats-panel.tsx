@@ -2,8 +2,8 @@ interface StatsPanelProps {
   stats: {
     treesPlanted: number;
     treesChopped: number;
-    dryTreesChopped: number; // Added new stat for dry trees
-    healthyTreesChopped: number; // Added new stat for healthy trees
+    dryTreesChopped: number;
+    healthyTreesChopped: number;
     trashCleaned: number;
     plasticCleaned: number;
     metalCleaned: number;
@@ -19,6 +19,8 @@ interface StatsPanelProps {
     missionsCompleted: number;
     flowersCollected: number;
     mushroomsCollected: number;
+    questionsAnswered?: number;
+    correctAnswers?: number;
   };
   score: number;
   biomeHealth: number;
@@ -35,6 +37,10 @@ export default function StatsPanel({ stats, score, biomeHealth, gameWon }: Stats
   const ecologicalBalance = stats.treesPlanted - stats.treesChopped;
   const balancePercentage = stats.treesPlanted > 0
     ? Math.round((ecologicalBalance / stats.treesPlanted) * 100)
+    : 0;
+
+  const questionAccuracy = stats.questionsAnswered && stats.questionsAnswered > 0
+    ? Math.round((stats.correctAnswers! / stats.questionsAnswered) * 100)
     : 0;
 
   return (
@@ -65,6 +71,39 @@ export default function StatsPanel({ stats, score, biomeHealth, gameWon }: Stats
           </div>
         </div>
       </div>
+
+      {stats.questionsAnswered && stats.questionsAnswered > 0 && (
+        <div className="bg-gradient-to-r from-green-700 to-blue-700 rounded-lg p-4 mb-4 border-2 border-yellow-400">
+          <h3 className="text-xl font-bold text-yellow-300 mb-3">🎓 Conocimiento Ecológico</h3>
+          <div className="space-y-2 text-white text-sm">
+            <div className="flex justify-between items-center bg-black/30 rounded px-3 py-2">
+              <span>Preguntas Respondidas</span>
+              <span className="font-bold text-yellow-300">{stats.questionsAnswered}</span>
+            </div>
+            <div className="flex justify-between items-center bg-black/30 rounded px-3 py-2">
+              <span>Respuestas Correctas</span>
+              <span className="font-bold text-green-300">{stats.correctAnswers}</span>
+            </div>
+            <div className="flex justify-between items-center bg-black/30 rounded px-3 py-2">
+              <span>Precisión</span>
+              <span className={`font-bold text-2xl ${
+                questionAccuracy >= 80 ? 'text-green-300' : 
+                questionAccuracy >= 60 ? 'text-yellow-300' : 'text-orange-300'
+              }`}>
+                {questionAccuracy}%
+              </span>
+            </div>
+            <div className="flex justify-between items-center bg-black/30 rounded px-3 py-2">
+              <span>Calificación</span>
+              <span className="font-bold text-xl text-yellow-300">
+                {questionAccuracy >= 90 ? '⭐⭐⭐ Excelente' :
+                 questionAccuracy >= 70 ? '⭐⭐ Muy Bien' :
+                 questionAccuracy >= 50 ? '⭐ Bien' : '💪 Sigue Aprendiendo'}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Estadísticas Ecológicas */}
       <div className="bg-slate-700 rounded-lg p-4 mb-4">
